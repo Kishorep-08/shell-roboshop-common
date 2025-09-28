@@ -3,6 +3,7 @@
 source ./common.sh
 
 check_root
+app_name=frontend
 
 ################ Creating System user ################
 
