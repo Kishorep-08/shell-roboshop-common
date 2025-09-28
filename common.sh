@@ -14,12 +14,14 @@ START_TIME=$(date +%s)
 
 mkdir -p $LOGS_FOLDER
 
-if [ $USERID -ne 0 ]
-then
-    echo -e "$R Error $N: Install with root privileges" | tee -a $LOG_FILE
-    exit 1
-fi
+check_root(){
+    if [ $USERID -ne 0 ]
+    then
+        echo -e "$R Error $N: Install with root privileges" | tee -a $LOG_FILE
+        exit 1
+    fi
 
+}
 
 VALIDATE(){
     if [ $1 -ne 0 ]
@@ -30,3 +32,10 @@ VALIDATE(){
         echo -e "$2......$G Success $N" | tee -a $LOG_FILE
     fi
 }
+
+print_total_time(){
+    END_TIME=$(date +%s)
+    TOTAL_TIME=$(($END_TIME - $START_TIME))
+    echo -e  "Script Executed in $Y $TOTAL_TIME seconds $N"
+}
+
