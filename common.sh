@@ -52,6 +52,21 @@ VALIDATE $? "Installing dependencies"
 
 }
 
+############ Java setup ###########
+java_setup(){
+    dnf install maven -y &>> $LOG_FILE
+    VALIDATE $? "Installing Maven"
+
+    mvn clean package &>> $LOG_FILE
+    VALIDATE $? "Installing dependencies and building artifacts"
+
+    mv target/shipping-1.0.jar shipping.jar
+    VALIDATE $? "Moving .jar file into app directory"
+
+}
+
+
+
 ############ Application code setup ############
 app_setup(){
 
