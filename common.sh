@@ -10,10 +10,12 @@ SCRIPT_NAME=$(echo "$0" | awk -F. '{print$1}')
 SCRIPT_DIR=$PWD
 LOG_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log"
 MYSQL_HOST=mysql.kishore-p.space
+MONGODB_HOST=mongodb.kishore-p.space
 START_TIME=$(date +%s)
 
 mkdir -p $LOGS_FOLDER
 
+########### User permissions check ############
 check_root(){
     if [ $USERID -ne 0 ]
     then
@@ -23,6 +25,7 @@ check_root(){
 
 }
 
+########## Validation of command status ##########
 VALIDATE(){
     if [ $1 -ne 0 ]
     then
@@ -33,6 +36,72 @@ VALIDATE(){
     fi
 }
 
+######## NodeJS Setup #########
+nodejs_setup(){
+dnf module disable nodejs -y &>> $LOG_FILE
+VALIDATE $? "Disabling default nodejs"
+
+dnf module enable nodejs:20 -y &>> $LOG_FILE
+VALIDATE $? "Enabling nodesjs:20"
+
+dnf install nodejs -y &>> $LOG_FILE
+VALIDATE $? "Installing nodejs"
+
+npm install &>> $LOG_FILE
+VALIDATE $? "Installing dependencies"
+
+}
+
+############ Application code setup ############
+app_setup(){
+
+    id roboshop &>> $LOG_FILE
+    if [ $? -ne 0 ]; then
+        useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>> $LOG_FILE
+        VALIDATE $? "Creating System user"
+    else
+        echo -e "User already exists ...... $Y Skipping $N" | tee -a $LOG_FILE
+    fi
+
+    mkdir -p /app 
+    VALIDATE $? "Creating app directory"
+
+    curl -o /tmp/$app_name.zip https://roboshop-artifacts.s3.amazonaws.com/$app_name-v3.zip &>> $LOG_FILE
+    VALIDATE $? "Downloading code"
+
+    cd /app 
+    VALIDATE $? "Changing to app directory"
+
+    rm -rf /app/*
+    VALIDATE $? "Removing existing code"
+
+    unzip  /tmp/$app_name.zip &>> $LOG_FILE
+    VALIDATE $? "unzipping code"
+
+}
+
+######## Service file setup ########
+service_setup(){
+    cp $SCRIPT_DIR/$app_name.service /etc/systemd/system/$app_name.service
+    VALIDATE $? "Creating $app_name service"
+
+    systemctl daemon-reload
+
+    systemctl enable $app_name &>> $LOG_FILE
+    VALIDATE $? "Enabling $app_name service"
+
+    systemctl start $app_name &>> $LOG_FILE
+    VALIDATE $? "Starting $app_name service"
+
+}
+
+########### Systemd Restart ###########
+app_restart(){
+    systemctl restart $app_name
+    VALIDATE $? "Restarted $app_name"
+}
+
+########### Time taken for script Execution ###########
 print_total_time(){
     END_TIME=$(date +%s)
     TOTAL_TIME=$(($END_TIME - $START_TIME))
